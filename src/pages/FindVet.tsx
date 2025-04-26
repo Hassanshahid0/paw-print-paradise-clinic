@@ -10,7 +10,7 @@ import { Search, MapPin, Star } from "lucide-react";
 const vets = [
   {
     id: 1,
-    name: "Dr. Sarah Johnson",
+    name: "Dr. Fatima Rahman",
     specialty: "General Care & Surgery",
     image: "https://images.unsplash.com/photo-1594824476967-48c8b964273f?auto=format&fit=crop&q=80&w=800&h=800",
     stars: 4.9,
@@ -20,7 +20,7 @@ const vets = [
   },
   {
     id: 2,
-    name: "Dr. Michael Chen",
+    name: "Dr. Ahmad Hassan",
     specialty: "Cardiology & Internal Medicine",
     image: "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&q=80&w=800&h=800",
     stars: 4.8,
@@ -30,7 +30,7 @@ const vets = [
   },
   {
     id: 3,
-    name: "Dr. Aisha Patel",
+    name: "Dr. Zainab Malik",
     specialty: "Dermatology & Allergies",
     image: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=800&h=800",
     stars: 4.7,
@@ -40,7 +40,7 @@ const vets = [
   },
   {
     id: 4,
-    name: "Dr. Robert Williams",
+    name: "Dr. Omar Khan",
     specialty: "Orthopedic Surgery",
     image: "https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=800&h=800",
     stars: 4.9,
@@ -50,7 +50,7 @@ const vets = [
   },
   {
     id: 5,
-    name: "Dr. Lisa Thompson",
+    name: "Dr. Amira Syed",
     specialty: "Exotic Pets & Avian Medicine",
     image: "https://images.unsplash.com/photo-1527613426441-4da17471b66d?auto=format&fit=crop&q=80&w=800&h=800",
     stars: 4.8,
