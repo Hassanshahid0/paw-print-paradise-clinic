@@ -1,4 +1,5 @@
 
+import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -61,6 +62,12 @@ const vets = [
 ];
 
 const FindVet = () => {
+  const navigate = useNavigate();
+  
+  const handleBookAppointment = (vetId: number) => {
+    navigate(`/book?vetId=${vetId}`);
+  };
+  
   return (
     <div className="min-h-screen">
       <Header />
@@ -145,7 +152,12 @@ const FindVet = () => {
                   <div className="mb-4 text-sm font-medium text-green-600">
                     {vet.availability}
                   </div>
-                  <Button className="w-full bg-pet-blue hover:bg-pet-blue/90 text-white">Book Appointment</Button>
+                  <Button 
+                    className="w-full bg-pet-blue hover:bg-pet-blue/90 text-white"
+                    onClick={() => handleBookAppointment(vet.id)}
+                  >
+                    Book Appointment
+                  </Button>
                 </CardContent>
               </Card>
             ))}

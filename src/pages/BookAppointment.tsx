@@ -1,5 +1,6 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -27,10 +28,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, ArrowRight, Video } from "lucide-react";
+import { ArrowRight, Video } from "lucide-react";
 import { format } from "date-fns";
-import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
 const timeSlots = [
@@ -41,6 +40,9 @@ const timeSlots = [
 ];
 
 const BookAppointment = () => {
+  const [searchParams] = useSearchParams();
+  const vetIdParam = searchParams.get('vetId');
+  
   const [appointmentType, setAppointmentType] = useState("in-person");
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
@@ -48,6 +50,25 @@ const BookAppointment = () => {
   const [selectedVet, setSelectedVet] = useState<string | undefined>(undefined);
   const [reason, setReason] = useState("");
   const { toast } = useToast();
+  
+  // Set the selected vet based on URL parameter if available
+  useEffect(() => {
+    if (vetIdParam) {
+      // Map the numeric ID to the corresponding vet value
+      const vetMapping: Record<string, string> = {
+        "1": "dr-fatima",
+        "2": "dr-ahmad",
+        "3": "dr-zainab",
+        "4": "dr-omar",
+        "5": "dr-amira"
+      };
+      
+      const mappedVet = vetMapping[vetIdParam];
+      if (mappedVet) {
+        setSelectedVet(mappedVet);
+      }
+    }
+  }, [vetIdParam]);
   
   const handleContinue = () => {
     if (currentStep === 1) {
@@ -148,17 +169,17 @@ const BookAppointment = () => {
                     
                     <div>
                       <h3 className="text-lg font-medium mb-3">Select Veterinarian</h3>
-                      <Select onValueChange={setSelectedVet}>
+                      <Select value={selectedVet} onValueChange={setSelectedVet}>
                         <SelectTrigger className="w-full pet-input">
                           <SelectValue placeholder="Choose a veterinarian" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectGroup>
-                            <SelectItem value="dr-johnson">Dr. Sarah Johnson (General Care)</SelectItem>
-                            <SelectItem value="dr-chen">Dr. Michael Chen (Cardiology)</SelectItem>
-                            <SelectItem value="dr-patel">Dr. Aisha Patel (Dermatology)</SelectItem>
-                            <SelectItem value="dr-williams">Dr. Robert Williams (Orthopedics)</SelectItem>
-                            <SelectItem value="dr-thompson">Dr. Lisa Thompson (Exotic Pets)</SelectItem>
+                            <SelectItem value="dr-fatima">Dr. Fatima Rahman (General Care)</SelectItem>
+                            <SelectItem value="dr-ahmad">Dr. Ahmad Hassan (Cardiology)</SelectItem>
+                            <SelectItem value="dr-zainab">Dr. Zainab Malik (Dermatology)</SelectItem>
+                            <SelectItem value="dr-omar">Dr. Omar Khan (Orthopedics)</SelectItem>
+                            <SelectItem value="dr-amira">Dr. Amira Syed (Exotic Pets)</SelectItem>
                           </SelectGroup>
                         </SelectContent>
                       </Select>
@@ -308,11 +329,11 @@ const BookAppointment = () => {
                       <h4 className="font-medium text-pet-dark">Appointment Summary:</h4>
                       <p>
                         {appointmentType === "in-person" ? "In-Person Visit" : "Virtual Consultation"} with{" "}
-                        {selectedVet === "dr-johnson" && "Dr. Sarah Johnson"} 
-                        {selectedVet === "dr-chen" && "Dr. Michael Chen"}
-                        {selectedVet === "dr-patel" && "Dr. Aisha Patel"}
-                        {selectedVet === "dr-williams" && "Dr. Robert Williams"}
-                        {selectedVet === "dr-thompson" && "Dr. Lisa Thompson"}
+                        {selectedVet === "dr-fatima" && "Dr. Fatima Rahman"} 
+                        {selectedVet === "dr-ahmad" && "Dr. Ahmad Hassan"}
+                        {selectedVet === "dr-zainab" && "Dr. Zainab Malik"}
+                        {selectedVet === "dr-omar" && "Dr. Omar Khan"}
+                        {selectedVet === "dr-amira" && "Dr. Amira Syed"}
                         {" "}on{" "}
                         {selectedDate && format(selectedDate, "EEEE, MMMM d, yyyy")} at {selectedTime}
                       </p>
