@@ -77,11 +77,13 @@ const FindVet = () => {
               
               {/* Search Bar */}
               <div className="bg-white rounded-lg shadow-md p-4 flex flex-col md:flex-row gap-4">
-                <div className="flex-grow">
+                <div className="flex-grow relative">
+                  <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                    <MapPin size={18} />
+                  </div>
                   <Input 
                     placeholder="Enter your location" 
-                    className="w-full pet-input"
-                    startIcon={<MapPin size={18} />}
+                    className="w-full pet-input pl-10"
                   />
                 </div>
                 <div className="w-full md:w-48">
