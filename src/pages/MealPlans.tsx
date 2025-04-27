@@ -1,8 +1,6 @@
-
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHeader, TableHead, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dog, Cat, PawPrint } from "lucide-react";
 
@@ -58,7 +56,7 @@ const MealPlans = () => {
           </div>
           
           {/* Admin Posted Meal Recipes - Card Grid Layout */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {mealRecipes.map(recipe => (
               <Card key={recipe.id} className="overflow-hidden hover:shadow-lg transition-shadow">
                 <div className="h-48 overflow-hidden">
@@ -101,40 +99,6 @@ const MealPlans = () => {
                 </CardContent>
               </Card>
             ))}
-          </div>
-          
-          {/* Detailed Recipe Table View */}
-          <div className="bg-white rounded-lg shadow-lg p-6 mb-12">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-pet-dark">Detailed Meal Recipes</h2>
-            </div>
-            
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Recipe Name</TableHead>
-                    <TableHead>Pet Type</TableHead>
-                    <TableHead>Age Range</TableHead>
-                    <TableHead>Prep Time</TableHead>
-                    <TableHead>Ingredients</TableHead>
-                    <TableHead>Published</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {mealRecipes.map(recipe => (
-                    <TableRow key={recipe.id}>
-                      <TableCell className="font-medium">{recipe.title}</TableCell>
-                      <TableCell>{recipe.petType}</TableCell>
-                      <TableCell>{recipe.ageRange}</TableCell>
-                      <TableCell>{recipe.prepTime}</TableCell>
-                      <TableCell className="max-w-xs truncate">{recipe.ingredients}</TableCell>
-                      <TableCell>{recipe.publishedDate}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
           </div>
         </div>
       </main>
