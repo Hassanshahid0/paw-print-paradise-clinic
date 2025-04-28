@@ -7,11 +7,15 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { MapPin, Search, Upload, Image } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
 
 const LostFound = () => {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [reportImage, setReportImage] = useState<File | null>(null);
+  const [reportPreviewUrl, setReportPreviewUrl] = useState<string | null>(null);
   const [searchResult, setSearchResult] = useState<'searching' | 'found' | 'not_found' | null>(null);
+  const { toast } = useToast();
 
   const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -23,15 +27,35 @@ const LostFound = () => {
     }
   };
 
+  const handleReportImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setReportImage(file);
+      const url = URL.createObjectURL(file);
+      setReportPreviewUrl(url);
+    }
+  };
+
   const handleSearch = async () => {
     if (!selectedImage) return;
     
     setSearchResult('searching');
     // Simulate search delay
     setTimeout(() => {
-      // For now, always show not found
       setSearchResult('not_found');
     }, 1500);
+  };
+
+  const handleSubmitReport = (e: React.FormEvent) => {
+    e.preventDefault();
+    toast({
+      title: "Report Submitted",
+      description: "Your lost pet report has been submitted successfully.",
+    });
+    // Reset form and images
+    setReportImage(null);
+    setReportPreviewUrl(null);
+    (e.target as HTMLFormElement).reset();
   };
 
   return (
@@ -113,19 +137,19 @@ const LostFound = () => {
           {searchResult === 'not_found' && (
             <div className="bg-white rounded-lg shadow-md p-6 max-w-3xl mx-auto">
               <h2 className="text-2xl font-semibold text-pet-dark mb-6">Submit a Lost Pet Report</h2>
-              <form className="space-y-6">
+              <form className="space-y-6" onSubmit={handleSubmitReport}>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Pet Type
                     </label>
-                    <Input placeholder="e.g., Dog, Cat, Bird" />
+                    <Input placeholder="e.g., Dog, Cat, Bird" required />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Breed
                     </label>
-                    <Input placeholder="e.g., Labrador, Persian" />
+                    <Input placeholder="e.g., Labrador, Persian" required />
                   </div>
                 </div>
                 
@@ -133,7 +157,7 @@ const LostFound = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Location Last Seen
                   </label>
-                  <Input placeholder="Enter the location where the pet was last seen" />
+                  <Input placeholder="Enter the location where the pet was last seen" required />
                 </div>
                 
                 <div>
@@ -143,10 +167,43 @@ const LostFound = () => {
                   <Textarea 
                     placeholder="Describe the pet's appearance, collar, tags, etc."
                     rows={4}
+                    required
                   />
                 </div>
+
+                {/* Additional Photos Upload */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Additional Photos
+                  </label>
+                  <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-dashed border-gray-300 rounded-lg">
+                    <div className="space-y-1 text-center">
+                      {reportPreviewUrl ? (
+                        <img 
+                          src={reportPreviewUrl} 
+                          alt="Report preview" 
+                          className="mx-auto h-32 w-auto object-contain"
+                        />
+                      ) : (
+                        <Upload className="mx-auto h-12 w-12 text-gray-400" />
+                      )}
+                      <div className="flex text-sm text-gray-600">
+                        <label className="relative cursor-pointer rounded-md font-medium text-pet-blue hover:text-pet-blue/90 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-pet-blue">
+                          <span>Upload additional photos</span>
+                          <Input
+                            type="file"
+                            className="sr-only"
+                            accept="image/*"
+                            onChange={handleReportImageSelect}
+                          />
+                        </label>
+                      </div>
+                      <p className="text-xs text-gray-500">PNG, JPG up to 10MB</p>
+                    </div>
+                  </div>
+                </div>
                 
-                <Button className="w-full bg-pet-blue hover:bg-pet-blue/90 text-white">
+                <Button type="submit" className="w-full bg-pet-blue hover:bg-pet-blue/90 text-white">
                   Submit Report
                 </Button>
               </form>
@@ -161,4 +218,3 @@ const LostFound = () => {
 };
 
 export default LostFound;
-

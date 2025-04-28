@@ -1,17 +1,15 @@
-
 import { useState } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { MessageSquare, Send, ThumbsUp, User } from "lucide-react";
+import { MessageSquare, Send, ThumbsUp, User, Upload, Image as ImageIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
+import { useToast } from "@/hooks/use-toast";
 
-// Mock data for community posts
 const mockPosts = [
   {
     id: 1,
@@ -19,6 +17,7 @@ const mockPosts = [
     avatar: null,
     title: "Looking for advice on puppy training",
     content: "I just got a new Labrador puppy and she's having trouble with basic commands. Any tips for helping a 3-month old puppy learn to sit and stay? I've tried treats but she gets too excited and forgets what we're doing.",
+    image: "https://images.unsplash.com/photo-1535268647677-300dbf3d78d1",
     date: "April 25, 2025",
     comments: 5,
     likes: 12,
@@ -51,14 +50,29 @@ const mockPosts = [
 const Community = () => {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [postImage, setPostImage] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const { toast } = useToast();
   
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setPostImage(file);
+      const url = URL.createObjectURL(file);
+      setPreviewUrl(url);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Here would be the logic to submit a new post
-    // For now we'll just reset the form
+    toast({
+      title: "Post Submitted",
+      description: "Your post has been submitted for review.",
+    });
     setTitle("");
     setContent("");
-    alert("Your post has been submitted for review!");
+    setPostImage(null);
+    setPreviewUrl(null);
   };
 
   return (
@@ -74,7 +88,6 @@ const Community = () => {
             </p>
           </div>
           
-          {/* Community Posts Section */}
           <div className="bg-white rounded-lg shadow-md p-6 mb-8">
             <h2 className="text-2xl font-bold text-pet-dark mb-6">Community Discussions</h2>
             
@@ -100,7 +113,14 @@ const Community = () => {
                     </div>
                   </CardHeader>
                   <CardContent className="pt-4">
-                    <p className="mb-6 text-gray-700">{post.content}</p>
+                    <p className="mb-4 text-gray-700">{post.content}</p>
+                    {post.image && (
+                      <img 
+                        src={post.image} 
+                        alt="Post image" 
+                        className="rounded-lg mb-4 max-h-96 w-full object-cover"
+                      />
+                    )}
                     <div className="flex justify-between items-center pt-2">
                       <div className="flex gap-4">
                         <span className="flex items-center gap-1 text-sm text-gray-500">
@@ -122,7 +142,6 @@ const Community = () => {
             </div>
           </div>
           
-          {/* Create Post Section */}
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="flex items-center gap-3 mb-6">
               <User className="h-6 w-6 text-pet-blue" />
@@ -157,6 +176,37 @@ const Community = () => {
                   className="border-gray-300"
                   required
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Add Image (Optional)
+                </label>
+                <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-dashed border-gray-300 rounded-lg">
+                  <div className="space-y-1 text-center">
+                    {previewUrl ? (
+                      <img 
+                        src={previewUrl} 
+                        alt="Upload preview" 
+                        className="mx-auto h-32 w-auto object-contain"
+                      />
+                    ) : (
+                      <ImageIcon className="mx-auto h-12 w-12 text-gray-400" />
+                    )}
+                    <div className="flex text-sm text-gray-600">
+                      <label className="relative cursor-pointer rounded-md font-medium text-pet-blue hover:text-pet-blue/90 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-pet-blue">
+                        <span>Upload a photo</span>
+                        <Input
+                          type="file"
+                          className="sr-only"
+                          accept="image/*"
+                          onChange={handleImageSelect}
+                        />
+                      </label>
+                    </div>
+                    <p className="text-xs text-gray-500">PNG, JPG up to 10MB</p>
+                  </div>
+                </div>
               </div>
               
               <div className="pt-4">
