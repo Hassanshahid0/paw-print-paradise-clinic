@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { PawPrint, Phone, User } from "lucide-react";
@@ -31,12 +30,12 @@ const Header = () => {
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2">
             <PawPrint size={32} className="text-pet-blue animate-paw-bounce" />
-            <span className="text-xl md:text-2xl font-bold text-pet-dark">Pet<span className="text-pet-blue">Care</span></span>
+            <span className="text-xl md:text-2xl font-bold text-pet-dark">Pet<span className="text-pet-blue">Well</span></span>
           </Link>
           
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-8">
-            <Link to="/services" className="text-pet-dark hover:text-pet-blue font-medium">Services</Link>
+            <Link to="/about" className="text-pet-dark hover:text-pet-blue font-medium">About Us</Link>
             <Link to="/find-vet" className="text-pet-dark hover:text-pet-blue font-medium">Find a Vet</Link>
             <Link to="/lost-found" className="text-pet-dark hover:text-pet-blue font-medium">Lost & Found</Link>
             <Link to="/meal-plans" className="text-pet-dark hover:text-pet-blue font-medium">Meal Plans</Link>
@@ -85,7 +84,7 @@ const Header = () => {
         {/* Mobile Navigation */}
         {isMenuOpen && (
           <nav className="md:hidden flex flex-col space-y-4 py-4">
-            <Link to="/services" className="text-pet-dark hover:text-pet-blue font-medium">Services</Link>
+            <Link to="/about" className="text-pet-dark hover:text-pet-blue font-medium">About Us</Link>
             <Link to="/find-vet" className="text-pet-dark hover:text-pet-blue font-medium">Find a Vet</Link>
             <Link to="/lost-found" className="text-pet-dark hover:text-pet-blue font-medium">Lost & Found</Link>
             <Link to="/meal-plans" className="text-pet-dark hover:text-pet-blue font-medium">Meal Plans</Link>
