@@ -52,7 +52,7 @@ const Header = () => {
               </DialogTrigger>
               <DialogContent className="sm:max-w-md">
                 <DialogHeader>
-                  <DialogTitle>Login to Pet Care</DialogTitle>
+                  <DialogTitle>Login to PetWell</DialogTitle>
                   <DialogDescription>
                     Access your account to manage appointments and more
                   </DialogDescription>
@@ -99,7 +99,7 @@ const Header = () => {
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-md">
                   <DialogHeader>
-                    <DialogTitle>Login to Pet Care</DialogTitle>
+                    <DialogTitle>Login to PetWell</DialogTitle>
                     <DialogDescription>
                       Access your account to manage appointments and more
                     </DialogDescription>

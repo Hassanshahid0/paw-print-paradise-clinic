@@ -14,7 +14,7 @@ const HeroSection = () => {
               Your Pet's Health, <span className="text-pet-blue">Our Priority</span>
             </h1>
             <p className="text-lg text-gray-600">
-              At Pet Care, we provide compassionate veterinary services to ensure your furry, feathered, or scaly family members live their happiest, healthiest lives.
+              At PetWell, we provide compassionate veterinary services to ensure your furry, feathered, or scaly family members live their happiest, healthiest lives.
             </p>
             
             <div className="flex flex-wrap gap-4">
