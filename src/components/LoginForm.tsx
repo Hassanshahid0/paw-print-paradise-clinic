@@ -62,6 +62,16 @@ const LoginForm = () => {
   const handleSignUp = async () => {
     try {
       setIsLoading(true);
+      
+      // Check if Supabase connection is available
+      if (!import.meta.env.VITE_SUPABASE_URL) {
+        toast.error("Supabase Connection Required", {
+          description: "Please complete Supabase integration to sign up. Click the Supabase button at the top right."
+        });
+        console.error("Supabase connection not configured. Please complete integration.");
+        return;
+      }
+      
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -82,9 +92,17 @@ const LoginForm = () => {
       setIsLogin(true);
     } catch (error: any) {
       console.error("Signup error:", error);
-      toast.error("Registration Failed", {
-        description: error.message || "Could not create your account"
-      });
+      
+      // Special handling for the "Failed to fetch" error
+      if (error.message === "Failed to fetch") {
+        toast.error("Connection Error", {
+          description: "Please make sure Supabase is properly connected to your project."
+        });
+      } else {
+        toast.error("Registration Failed", {
+          description: error.message || "Could not create your account"
+        });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -222,6 +240,16 @@ const LoginForm = () => {
             <p className="text-xs text-gray-600 mb-1">Admin: admin@petwell.com / password123</p>
             <p className="text-xs text-gray-600 mb-1">Doctor: doctor@petwell.com / password123</p>
             <p className="text-xs text-gray-600">User: user@petwell.com / password123</p>
+          </div>
+        )}
+        
+        {/* Supabase connection notice */}
+        {!isLogin && !import.meta.env.VITE_SUPABASE_URL && (
+          <div className="mt-4 p-3 bg-yellow-50 rounded-md border border-yellow-200">
+            <h3 className="text-sm font-medium mb-1 text-yellow-800">⚠️ Supabase Connection Required</h3>
+            <p className="text-xs text-yellow-700">
+              To enable sign-up functionality, please connect your project to Supabase by clicking the Supabase button in the top right of the editor.
+            </p>
           </div>
         )}
       </form>

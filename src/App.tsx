@@ -39,6 +39,8 @@ const App = () => (
             <Route path="/terms" element={<Terms />} />
             <Route path="/doctor-panel" element={<DoctorPanel />} />
             <Route path="/admin-panel" element={<AdminPanel />} />
+            <Route path="/reset-password" element={<Index />} />
+            <Route path="/auth/callback" element={<Index />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
