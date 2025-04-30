@@ -1,58 +1,80 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
+import { v4 as uuidv4 } from "uuid";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { MessageSquare, Send, ThumbsUp, User, Upload, Image as ImageIcon } from "lucide-react";
+import { MessageSquare, Send, ThumbsUp, User, Upload, Image as ImageIcon, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/lib/supabase";
 
-const mockPosts = [
-  {
-    id: 1,
-    author: "Jane Smith",
-    avatar: null,
-    title: "Looking for advice on puppy training",
-    content: "I just got a new Labrador puppy and she's having trouble with basic commands. Any tips for helping a 3-month old puppy learn to sit and stay? I've tried treats but she gets too excited and forgets what we're doing.",
-    image: "https://images.unsplash.com/photo-1535268647677-300dbf3d78d1",
-    date: "April 25, 2025",
-    comments: 5,
-    likes: 12,
-    status: "approved"
-  },
-  {
-    id: 2,
-    author: "John Davis",
-    avatar: null,
-    title: "Cat food recommendations",
-    content: "My senior cat has been turning away from her usual food. Any recommendations for brands that are good for older cats with sensitive stomachs? She's 15 years old and has always been picky, but lately it's getting worse.",
-    date: "April 24, 2025",
-    comments: 8,
-    likes: 7,
-    status: "approved"
-  },
-  {
-    id: 3,
-    author: "Michael Johnson",
-    avatar: null,
-    title: "Local pet-friendly parks",
-    content: "I'm new to the area and looking for good parks where I can take my dog. Any suggestions for parks with fenced areas where dogs can run off-leash? Bonus points if there's a water feature for hot days!",
-    date: "April 23, 2025",
-    comments: 12,
-    likes: 18,
-    status: "approved"
-  }
-];
+interface Post {
+  id: number | string;
+  title: string;
+  content: string;
+  author: string;
+  author_id?: string;
+  created_at: string;
+  image_url?: string | null;
+  likes: number;
+  comments: number;
+  status: 'pending' | 'approved' | 'rejected';
+  avatar?: string | null;
+}
 
 const Community = () => {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [postImage, setPostImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [posts, setPosts] = useState<Post[]>([]);
   const { toast } = useToast();
+  
+  // Fetch posts on component mount
+  useEffect(() => {
+    fetchPosts();
+  }, []);
+  
+  const fetchPosts = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('community_posts')
+        .select('*')
+        .eq('status', 'approved')
+        .order('created_at', { ascending: false });
+        
+      if (error) {
+        throw error;
+      }
+      
+      // Format the posts for display
+      const formattedPosts = data.map(post => ({
+        ...post,
+        comments: post.comments || 0,
+        likes: post.likes || 0,
+        author: post.author || 'Anonymous'
+      }));
+      
+      setPosts(formattedPosts);
+    } catch (error) {
+      console.error("Error fetching posts:", error);
+      toast({
+        title: "Failed to load posts",
+        description: "There was an error loading community posts.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
   
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -63,16 +85,88 @@ const Community = () => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast({
-      title: "Post Submitted",
-      description: "Your post has been submitted for review.",
+    setIsSubmitting(true);
+    
+    try {
+      // Get current user (if logged in)
+      const { data: userData } = await supabase.auth.getUser();
+      const user = userData?.user;
+      
+      // Upload image if there is one
+      let imageUrl = null;
+      if (postImage) {
+        const fileExt = postImage.name.split('.').pop();
+        const fileName = `${uuidv4()}.${fileExt}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('community-images')
+          .upload(fileName, postImage);
+          
+        if (uploadError) {
+          throw uploadError;
+        }
+        
+        // Get the public URL
+        const { data: urlData } = supabase.storage
+          .from('community-images')
+          .getPublicUrl(fileName);
+          
+        imageUrl = urlData.publicUrl;
+      }
+      
+      // Insert post into database
+      const { error: insertError } = await supabase
+        .from('community_posts')
+        .insert([
+          {
+            title,
+            content,
+            image_url: imageUrl,
+            author: user ? user.email?.split('@')[0] : 'Guest User',
+            author_id: user?.id,
+            status: 'pending',
+            likes: 0,
+            comments: 0,
+            created_at: new Date().toISOString()
+          }
+        ]);
+        
+      if (insertError) {
+        throw insertError;
+      }
+      
+      toast({
+        title: "Post Submitted",
+        description: "Your post has been submitted for review.",
+      });
+      
+      // Reset form
+      setTitle("");
+      setContent("");
+      setPostImage(null);
+      setPreviewUrl(null);
+      
+    } catch (error) {
+      console.error("Submission error:", error);
+      toast({
+        title: "Submission Failed",
+        description: "There was an error submitting your post.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
     });
-    setTitle("");
-    setContent("");
-    setPostImage(null);
-    setPreviewUrl(null);
   };
 
   return (
@@ -91,55 +185,69 @@ const Community = () => {
           <div className="bg-white rounded-lg shadow-md p-6 mb-8">
             <h2 className="text-2xl font-bold text-pet-dark mb-6">Community Discussions</h2>
             
-            <div className="space-y-6">
-              {mockPosts.map(post => (
-                <Card key={post.id} className="border-none shadow-sm hover:shadow-md transition-all duration-200">
-                  <CardHeader className="pb-2 border-b">
-                    <div className="flex justify-between items-start">
-                      <div className="flex gap-3 items-center">
-                        <Avatar className="h-10 w-10">
-                          <AvatarFallback className="bg-pet-blue text-white">
-                            {post.author.split(' ').map(n => n[0]).join('')}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <CardTitle className="text-xl font-bold">{post.title}</CardTitle>
-                          <p className="text-sm text-gray-500">Posted by {post.author} • {post.date}</p>
+            {isLoading ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin text-pet-blue" />
+              </div>
+            ) : posts.length > 0 ? (
+              <div className="space-y-6">
+                {posts.map(post => (
+                  <Card key={post.id} className="border-none shadow-sm hover:shadow-md transition-all duration-200">
+                    <CardHeader className="pb-2 border-b">
+                      <div className="flex justify-between items-start">
+                        <div className="flex gap-3 items-center">
+                          <Avatar className="h-10 w-10">
+                            {post.avatar ? (
+                              <AvatarImage src={post.avatar} alt={post.author} />
+                            ) : (
+                              <AvatarFallback className="bg-pet-blue text-white">
+                                {post.author.split(' ').map(n => n[0]).join('')}
+                              </AvatarFallback>
+                            )}
+                          </Avatar>
+                          <div>
+                            <CardTitle className="text-xl font-bold">{post.title}</CardTitle>
+                            <p className="text-sm text-gray-500">Posted by {post.author} • {formatDate(post.created_at)}</p>
+                          </div>
                         </div>
+                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                          Approved
+                        </Badge>
                       </div>
-                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                        Approved
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pt-4">
-                    <p className="mb-4 text-gray-700">{post.content}</p>
-                    {post.image && (
-                      <img 
-                        src={post.image} 
-                        alt="Post image" 
-                        className="rounded-lg mb-4 max-h-96 w-full object-cover"
-                      />
-                    )}
-                    <div className="flex justify-between items-center pt-2">
-                      <div className="flex gap-4">
-                        <span className="flex items-center gap-1 text-sm text-gray-500">
-                          <ThumbsUp className="h-4 w-4" /> 
-                          {post.likes} likes
-                        </span>
-                        <span className="flex items-center gap-1 text-sm text-gray-500">
-                          <MessageSquare className="h-4 w-4" /> 
-                          {post.comments} comments
-                        </span>
+                    </CardHeader>
+                    <CardContent className="pt-4">
+                      <p className="mb-4 text-gray-700">{post.content}</p>
+                      {post.image_url && (
+                        <img 
+                          src={post.image_url} 
+                          alt="Post image" 
+                          className="rounded-lg mb-4 max-h-96 w-full object-cover"
+                        />
+                      )}
+                      <div className="flex justify-between items-center pt-2">
+                        <div className="flex gap-4">
+                          <span className="flex items-center gap-1 text-sm text-gray-500">
+                            <ThumbsUp className="h-4 w-4" /> 
+                            {post.likes} likes
+                          </span>
+                          <span className="flex items-center gap-1 text-sm text-gray-500">
+                            <MessageSquare className="h-4 w-4" /> 
+                            {post.comments} comments
+                          </span>
+                        </div>
+                        <Button variant="outline" size="sm" className="flex items-center gap-2">
+                          <MessageSquare className="h-4 w-4" /> Comment
+                        </Button>
                       </div>
-                      <Button variant="outline" size="sm" className="flex items-center gap-2">
-                        <MessageSquare className="h-4 w-4" /> Comment
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <p className="text-gray-500">No posts available at the moment.</p>
+              </div>
+            )}
           </div>
           
           <div className="bg-white rounded-lg shadow-md p-6">
@@ -210,8 +318,21 @@ const Community = () => {
               </div>
               
               <div className="pt-4">
-                <Button type="submit" className="bg-pet-blue hover:bg-pet-blue/90 text-white flex items-center gap-2 w-full sm:w-auto">
-                  <Send className="h-4 w-4" /> Submit Post
+                <Button 
+                  type="submit" 
+                  className="bg-pet-blue hover:bg-pet-blue/90 text-white flex items-center gap-2 w-full sm:w-auto"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Submitting...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="h-4 w-4" /> Submit Post
+                    </>
+                  )}
                 </Button>
                 
                 <p className="text-sm text-gray-500 mt-2">

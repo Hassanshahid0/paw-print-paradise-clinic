@@ -5,41 +5,89 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/lib/supabase";
+import { Loader2 } from "lucide-react";
 
 const LoginForm = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
     
-    // This is just a mock implementation
-    // In a real app, you would validate credentials against your backend
-    if (email === "admin@petcare.com" && password === "admin123") {
+    try {
+      if (isLogin) {
+        // Sign in
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password
+        });
+        
+        if (error) throw error;
+        
+        // Check user role/metadata for admin or doctor status
+        const user = data.user;
+        
+        if (email.includes('admin')) {
+          toast({
+            title: "Admin Login Successful",
+            description: "Welcome back to Pet Care Admin!",
+            duration: 3000,
+          });
+          navigate("/admin-panel");
+        } else if (email.includes('doctor')) {
+          toast({
+            title: "Doctor Login Successful",
+            description: "Welcome back to Pet Care Doctor Panel!",
+            duration: 3000,
+          });
+          navigate("/doctor-panel");
+        } else {
+          toast({
+            title: "Login Successful",
+            description: "Welcome back to Pet Care!",
+            duration: 3000,
+          });
+          navigate("/");
+        }
+      } else {
+        // Sign up
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/auth/callback`
+          }
+        });
+        
+        if (error) throw error;
+        
+        toast({
+          title: "Account Created",
+          description: "Thank you for joining Pet Care. Please check your email to verify your account.",
+          duration: 5000,
+        });
+        
+        // Reset form
+        setEmail("");
+        setPassword("");
+        setIsLogin(true);
+      }
+    } catch (error: any) {
+      console.error("Authentication error:", error);
       toast({
-        title: "Admin Login Successful",
-        description: "Welcome back to Pet Care Admin!",
-        duration: 3000,
+        title: isLogin ? "Login Failed" : "Registration Failed",
+        description: error.message || "An error occurred during authentication.",
+        variant: "destructive",
+        duration: 5000,
       });
-      navigate("/admin-panel");
-    } else if (email === "doctor@petcare.com" && password === "doctor123") {
-      toast({
-        title: "Doctor Login Successful",
-        description: "Welcome back to Pet Care Doctor Panel!",
-        duration: 3000,
-      });
-      navigate("/doctor-panel");
-    } else {
-      toast({
-        title: isLogin ? "Login Successful" : "Account Created",
-        description: isLogin 
-          ? "Welcome back to Pet Care!" 
-          : "Thank you for joining Pet Care. Please check your email to verify your account.",
-        duration: 3000,
-      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -75,6 +123,7 @@ const LoginForm = () => {
             placeholder="yourname@example.com" 
             required 
             className="pet-input"
+            disabled={isLoading}
           />
         </div>
         
@@ -88,6 +137,7 @@ const LoginForm = () => {
             placeholder="••••••••" 
             required 
             className="pet-input"
+            disabled={isLoading}
           />
         </div>
 
@@ -96,11 +146,41 @@ const LoginForm = () => {
             <input type="checkbox" id="remember" className="rounded text-pet-blue focus:ring-pet-blue" />
             <Label htmlFor="remember" className="text-sm cursor-pointer">Remember me</Label>
           </div>
-          {isLogin && <a href="#" className="text-sm text-pet-blue hover:underline">Forgot password?</a>}
+          {isLogin && (
+            <button 
+              type="button" 
+              onClick={async () => {
+                const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                  redirectTo: `${window.location.origin}/reset-password`,
+                });
+                if (!error && email) {
+                  toast({
+                    title: "Password Reset Email Sent",
+                    description: "Check your inbox for password reset instructions",
+                  });
+                }
+              }}
+              className="text-sm text-pet-blue hover:underline"
+              disabled={!email}
+            >
+              Forgot password?
+            </button>
+          )}
         </div>
 
-        <Button type="submit" className="w-full bg-pet-blue hover:bg-pet-blue/90 text-white">
-          {isLogin ? "Login" : "Create Account"}
+        <Button 
+          type="submit" 
+          className="w-full bg-pet-blue hover:bg-pet-blue/90 text-white"
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              {isLogin ? "Logging in..." : "Creating account..."}
+            </>
+          ) : (
+            isLogin ? "Login" : "Create Account"
+          )}
         </Button>
       </form>
     </div>

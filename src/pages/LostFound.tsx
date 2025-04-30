@@ -1,13 +1,15 @@
 
 import { useState } from "react";
+import { v4 as uuidv4 } from "uuid";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { MapPin, Search, Upload, Image } from "lucide-react";
+import { MapPin, Search, Upload, Image, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/lib/supabase";
 
 const LostFound = () => {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
@@ -15,6 +17,12 @@ const LostFound = () => {
   const [reportImage, setReportImage] = useState<File | null>(null);
   const [reportPreviewUrl, setReportPreviewUrl] = useState<string | null>(null);
   const [searchResult, setSearchResult] = useState<'searching' | 'found' | 'not_found' | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const [petType, setPetType] = useState("");
+  const [breed, setBreed] = useState("");
+  const [location, setLocation] = useState("");
+  const [description, setDescription] = useState("");
   const { toast } = useToast();
 
   const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -39,23 +47,127 @@ const LostFound = () => {
   const handleSearch = async () => {
     if (!selectedImage) return;
     
+    setIsSearching(true);
     setSearchResult('searching');
-    // Simulate search delay
-    setTimeout(() => {
-      setSearchResult('not_found');
-    }, 1500);
+
+    try {
+      // Upload image to Supabase Storage
+      const fileExt = selectedImage.name.split('.').pop();
+      const fileName = `${uuidv4()}.${fileExt}`;
+      const { error: uploadError } = await supabase.storage
+        .from('pet-images')
+        .upload(`search/${fileName}`, selectedImage);
+
+      if (uploadError) {
+        throw new Error('Error uploading image: ' + uploadError.message);
+      }
+
+      // Get image URL
+      const { data: urlData } = supabase.storage
+        .from('pet-images')
+        .getPublicUrl(`search/${fileName}`);
+
+      // Search in the lost pets database
+      const { data: pets, error: searchError } = await supabase
+        .from('lost_pets')
+        .select('*');
+
+      if (searchError) {
+        throw new Error('Error searching database: ' + searchError.message);
+      }
+
+      // For now, just simulate no matches
+      setTimeout(() => {
+        setSearchResult('not_found');
+        setIsSearching(false);
+      }, 1500);
+
+      // In a real app, you would use image comparison or ML
+      // to find matches and set searchResult accordingly
+
+    } catch (error) {
+      console.error("Search error:", error);
+      toast({
+        title: "Search Failed",
+        description: "There was an error searching for the pet.",
+        variant: "destructive",
+      });
+      setSearchResult(null);
+      setIsSearching(false);
+    }
   };
 
-  const handleSubmitReport = (e: React.FormEvent) => {
+  const handleSubmitReport = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast({
-      title: "Report Submitted",
-      description: "Your lost pet report has been submitted successfully.",
-    });
-    // Reset form and images
-    setReportImage(null);
-    setReportPreviewUrl(null);
-    (e.target as HTMLFormElement).reset();
+    setIsSubmitting(true);
+
+    try {
+      let imageUrl = null;
+
+      // Upload image if provided
+      if (reportImage) {
+        const fileExt = reportImage.name.split('.').pop();
+        const fileName = `${uuidv4()}.${fileExt}`;
+        const { error: uploadError } = await supabase.storage
+          .from('pet-images')
+          .upload(`lost/${fileName}`, reportImage);
+        
+        if (uploadError) {
+          throw new Error('Error uploading image: ' + uploadError.message);
+        }
+
+        // Get image URL
+        const { data: urlData } = supabase.storage
+          .from('pet-images')
+          .getPublicUrl(`lost/${fileName}`);
+        
+        imageUrl = urlData?.publicUrl;
+      }
+
+      // Save report to database
+      const { error: insertError } = await supabase
+        .from('lost_pets')
+        .insert([
+          {
+            pet_type: petType,
+            breed,
+            location,
+            description,
+            image_url: imageUrl,
+            status: 'pending', // pending, found, closed
+            reported_at: new Date().toISOString(),
+            user_id: (await supabase.auth.getUser()).data?.user?.id,
+          },
+        ]);
+
+      if (insertError) {
+        throw new Error('Error saving report: ' + insertError.message);
+      }
+
+      toast({
+        title: "Report Submitted",
+        description: "Your lost pet report has been submitted successfully.",
+      });
+
+      // Reset form and images
+      setPetType("");
+      setBreed("");
+      setLocation("");
+      setDescription("");
+      setReportImage(null);
+      setReportPreviewUrl(null);
+      (e.target as HTMLFormElement).reset();
+
+    } catch (error) {
+      console.error("Submission error:", error);
+      toast({
+        title: "Submission Failed",
+        description: "There was an error submitting your report.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -106,11 +218,20 @@ const LostFound = () => {
               
               <Button 
                 onClick={handleSearch}
-                disabled={!selectedImage || searchResult === 'searching'}
+                disabled={!selectedImage || isSearching}
                 className="w-full max-w-md bg-pet-blue hover:bg-pet-blue/90 text-white"
               >
-                <Image className="mr-2 h-5 w-5" />
-                {searchResult === 'searching' ? 'Searching...' : 'Search Database'}
+                {isSearching ? (
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    Searching...
+                  </>
+                ) : (
+                  <>
+                    <Image className="mr-2 h-5 w-5" />
+                    Search Database
+                  </>
+                )}
               </Button>
               
               {searchResult && (
@@ -143,13 +264,23 @@ const LostFound = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Pet Type
                     </label>
-                    <Input placeholder="e.g., Dog, Cat, Bird" required />
+                    <Input 
+                      placeholder="e.g., Dog, Cat, Bird" 
+                      value={petType}
+                      onChange={(e) => setPetType(e.target.value)}
+                      required 
+                    />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Breed
                     </label>
-                    <Input placeholder="e.g., Labrador, Persian" required />
+                    <Input 
+                      placeholder="e.g., Labrador, Persian" 
+                      value={breed}
+                      onChange={(e) => setBreed(e.target.value)}
+                      required 
+                    />
                   </div>
                 </div>
                 
@@ -157,7 +288,12 @@ const LostFound = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Location Last Seen
                   </label>
-                  <Input placeholder="Enter the location where the pet was last seen" required />
+                  <Input 
+                    placeholder="Enter the location where the pet was last seen" 
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
+                    required 
+                  />
                 </div>
                 
                 <div>
@@ -166,6 +302,8 @@ const LostFound = () => {
                   </label>
                   <Textarea 
                     placeholder="Describe the pet's appearance, collar, tags, etc."
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
                     rows={4}
                     required
                   />
@@ -203,8 +341,19 @@ const LostFound = () => {
                   </div>
                 </div>
                 
-                <Button type="submit" className="w-full bg-pet-blue hover:bg-pet-blue/90 text-white">
-                  Submit Report
+                <Button 
+                  type="submit" 
+                  className="w-full bg-pet-blue hover:bg-pet-blue/90 text-white"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Submitting...
+                    </>
+                  ) : (
+                    "Submit Report"
+                  )}
                 </Button>
               </form>
             </div>
