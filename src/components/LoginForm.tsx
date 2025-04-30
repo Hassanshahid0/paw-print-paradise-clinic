@@ -6,89 +6,122 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
-import { Loader2 } from "lucide-react";
+import { Loader2, Eye, EyeOff } from "lucide-react";
+import { toast } from "@/components/ui/sonner";
 
 const LoginForm = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const { toast } = useToast();
+  const [showPassword, setShowPassword] = useState(false);
+  const { toast: toastNotification } = useToast();
   const navigate = useNavigate();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
+
+  const handleSignIn = async () => {
     try {
-      if (isLogin) {
-        // Sign in
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email,
-          password
+      setIsLoading(true);
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+      
+      if (error) throw error;
+      
+      // Check user role/metadata for admin or doctor status
+      if (email.includes('admin')) {
+        toast.success("Admin Login Successful", {
+          description: "Welcome back to Pet Care Admin!"
         });
-        
-        if (error) throw error;
-        
-        // Check user role/metadata for admin or doctor status
-        const user = data.user;
-        
-        if (email.includes('admin')) {
-          toast({
-            title: "Admin Login Successful",
-            description: "Welcome back to Pet Care Admin!",
-            duration: 3000,
-          });
-          navigate("/admin-panel");
-        } else if (email.includes('doctor')) {
-          toast({
-            title: "Doctor Login Successful",
-            description: "Welcome back to Pet Care Doctor Panel!",
-            duration: 3000,
-          });
-          navigate("/doctor-panel");
-        } else {
-          toast({
-            title: "Login Successful",
-            description: "Welcome back to Pet Care!",
-            duration: 3000,
-          });
-          navigate("/");
-        }
+        navigate("/admin-panel");
+      } else if (email.includes('doctor')) {
+        toast.success("Doctor Login Successful", {
+          description: "Welcome back to Pet Care Doctor Panel!"
+        });
+        navigate("/doctor-panel");
       } else {
-        // Sign up
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/auth/callback`
-          }
+        toast.success("Login Successful", {
+          description: "Welcome back to Pet Care!"
         });
-        
-        if (error) throw error;
-        
-        toast({
-          title: "Account Created",
-          description: "Thank you for joining Pet Care. Please check your email to verify your account.",
-          duration: 5000,
-        });
-        
-        // Reset form
-        setEmail("");
-        setPassword("");
-        setIsLogin(true);
+        navigate("/");
       }
     } catch (error: any) {
-      console.error("Authentication error:", error);
-      toast({
-        title: isLogin ? "Login Failed" : "Registration Failed",
-        description: error.message || "An error occurred during authentication.",
-        variant: "destructive",
-        duration: 5000,
+      console.error("Login error:", error);
+      toast.error("Login Failed", {
+        description: error.message || "Invalid email or password"
       });
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleSignUp = async () => {
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`
+        }
+      });
+      
+      if (error) throw error;
+      
+      toast.success("Account Created", {
+        description: "Please check your email to verify your account."
+      });
+      
+      // Reset form and switch to login view
+      setEmail("");
+      setPassword("");
+      setIsLogin(true);
+    } catch (error: any) {
+      console.error("Signup error:", error);
+      toast.error("Registration Failed", {
+        description: error.message || "Could not create your account"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!email) {
+      toast.error("Email Required", { 
+        description: "Please enter your email to reset password" 
+      });
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      
+      if (error) throw error;
+      
+      toast.success("Password Reset Email Sent", {
+        description: "Check your inbox for instructions"
+      });
+    } catch (error: any) {
+      console.error("Password reset error:", error);
+      toast.error("Password Reset Failed", {
+        description: error.message || "Could not send reset email"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    isLogin ? handleSignIn() : handleSignUp();
   };
 
   return (
@@ -129,16 +162,25 @@ const LoginForm = () => {
         
         <div className="grid gap-2">
           <Label htmlFor="password">Password</Label>
-          <Input 
-            id="password" 
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="••••••••" 
-            required 
-            className="pet-input"
-            disabled={isLoading}
-          />
+          <div className="relative">
+            <Input 
+              id="password" 
+              type={showPassword ? "text" : "password"}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••" 
+              required 
+              className="pet-input pr-10"
+              disabled={isLoading}
+            />
+            <button 
+              type="button"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
+              onClick={togglePasswordVisibility}
+            >
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
         </div>
 
         <div className="flex justify-between items-center">
@@ -149,19 +191,9 @@ const LoginForm = () => {
           {isLogin && (
             <button 
               type="button" 
-              onClick={async () => {
-                const { error } = await supabase.auth.resetPasswordForEmail(email, {
-                  redirectTo: `${window.location.origin}/reset-password`,
-                });
-                if (!error && email) {
-                  toast({
-                    title: "Password Reset Email Sent",
-                    description: "Check your inbox for password reset instructions",
-                  });
-                }
-              }}
+              onClick={handleResetPassword}
               className="text-sm text-pet-blue hover:underline"
-              disabled={!email}
+              disabled={!email || isLoading}
             >
               Forgot password?
             </button>
@@ -182,6 +214,16 @@ const LoginForm = () => {
             isLogin ? "Login" : "Create Account"
           )}
         </Button>
+
+        {/* Demo credentials section */}
+        {isLogin && (
+          <div className="mt-4 p-3 bg-gray-50 rounded-md border border-gray-200">
+            <h3 className="text-sm font-medium mb-2">Demo Credentials:</h3>
+            <p className="text-xs text-gray-600 mb-1">Admin: admin@petwell.com / password123</p>
+            <p className="text-xs text-gray-600 mb-1">Doctor: doctor@petwell.com / password123</p>
+            <p className="text-xs text-gray-600">User: user@petwell.com / password123</p>
+          </div>
+        )}
       </form>
     </div>
   );
